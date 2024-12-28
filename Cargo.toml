@@ -3,24 +3,29 @@ name = "simple-kv"
 version = "0.2.0"
 edition = "2021"
 
+# KV服务器
 [[bin]]
 name = "kvs"
 path = "src/server.rs"
 
+# KV客户端
 [[bin]]
 name = "kvc"
 path = "src/client.rs"
 
+# 证书工具
 [[bin]]
 name = "gen_cert"
 path = "tools/gen_cert.rs"
 
+# 配置工具
 [[bin]]
 name = "gen_config"
 path = "tools/gen_config.rs"
 
 [dependencies]
 anyhow = "1" # 错误处理
+thiserror = "1" # 错误定义和处理
 async-trait = "0.1" # 异步 async trait
 bytes = "1" # 高效处理网络 buffer 的库
 certify = "0.4" # 创建 x509 cert
@@ -31,10 +36,9 @@ http = "0.2" # 我们使用 HTTP status code 所以引入这个类型库
 opentelemetry-jaeger = "0.16" # opentelemetry jaeger 支持
 prost = "0.9" # 处理 protobuf 的代码
 rustls-native-certs = "0.5" # 加载本机信任证书
-s2n-quic = "1"
+s2n-quic = "1" # IETF QUIC 协议实现
 serde = { version = "1", features = ["derive"] } # 序列化/反序列化
-sled = "0.34" # sled db
-thiserror = "1" # 错误定义和处理
+sled = "0.34" # sled db 文件数据库
 tokio = { version = "1", features = ["full" ] } # 异步网络库
 tokio-rustls = "0.22" # 处理 TLS
 tokio-stream = { version = "0.1", features = ["sync"] } # 处理 stream
@@ -47,13 +51,14 @@ tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] } # �
 yamux = "0.10" # yamux 多路复用支持
 
 [dev-dependencies]
-criterion = { version = "0.3", features = ["async_futures", "async_tokio", "html_reports"] } # benchmark
+criterion = { version = "0.3", features = ["async_futures", "async_tokio", "html_reports"] } # benchmark 性能测试
 rand = "0.8" # 随机数处理
 tempfile = "3" # 处理临时目录和临时文件
 
 [build-dependencies]
 prost-build = "0.9" # 编译 protobuf
 
+# 基准测试
 [[bench]]
 name = "pubsub"
 harness = false

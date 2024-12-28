@@ -1,13 +1,22 @@
+// 引入 async_trait，用于异步 trait 实现
 use async_trait::async_trait;
+// 引入 futures，用于异步编程
 use futures::{future, Future, TryStreamExt};
+// 引入 PhantomData，用于类型占位符
 use std::marker::PhantomData;
+// 引入 tokio::io，用于异步读写
 use tokio::io::{AsyncRead, AsyncWrite};
+// 引入 tokio_util::compat，用于将 futures 的 AsyncReadExt 和 AsyncWriteExt 转换为 tokio 的 AsyncReadExt 和 AsyncWriteExt
 use tokio_util::compat::{Compat, FuturesAsyncReadCompatExt, TokioAsyncReadCompatExt};
+// 引入 tracing::instrument，用于日志记录
 use tracing::instrument;
+// 引入 yamux，用于多路复用
 use yamux::{Config, Connection, ConnectionError, Control, Mode, WindowUpdateMode};
 
+// 引入 crate 中的错误类型和客户端流类型
 use crate::{KvError, ProstClientStream};
 
+// 引入 AppStream trait，用于定义应用流接口
 use super::AppStream;
 
 /// Yamux 控制结构
@@ -23,6 +32,7 @@ where
 {
     /// 创建 yamux 客户端
     pub fn new_client(stream: S, config: Option<Config>) -> Self {
+        // 调用 new 方法创建 yamux 客户端
         Self::new(stream, config, true, |_stream| future::ready(Ok(())))
     }
 
@@ -33,6 +43,7 @@ where
         F: Send + 'static,
         Fut: Future<Output = Result<(), ConnectionError>> + Send + 'static,
     {
+        // 调用 new 方法创建 yamux 服务端
         Self::new(stream, config, false, f)
     }
 
@@ -44,13 +55,14 @@ where
         F: Send + 'static,
         Fut: Future<Output = Result<(), ConnectionError>> + Send + 'static,
     {
+        // 根据是否为客户端，设置模式
         let mode = if is_client {
             Mode::Client
         } else {
             Mode::Server
         };
 
-        // 创建 config
+        // 创建或更新配置
         let mut config = config.unwrap_or_default();
         config.set_window_update_mode(WindowUpdateMode::OnRead);
 
@@ -79,6 +91,7 @@ where
 
     #[instrument(skip_all)]
     async fn open_stream(&mut self) -> Result<ProstClientStream<Self::InnerStream>, KvError> {
+        // 从 yamux ctrl 中打开一个新的 stream
         let stream = self.ctrl.open_stream().await?;
         Ok(ProstClientStream::new(stream.compat()))
     }
