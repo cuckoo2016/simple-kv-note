@@ -13,6 +13,7 @@ pub trait TopicService {
 
 impl TopicService for Subscribe {
     fn execute(self, topic: impl Topic) -> StreamingResponse {
+        // `Subscribe`流：由Receiver构成
         let rx = topic.subscribe(self.topic);
         Box::pin(ReceiverStream::new(rx))
     }
@@ -20,7 +21,8 @@ impl TopicService for Subscribe {
 
 impl TopicService for Unsubscribe {
     fn execute(self, topic: impl Topic) -> StreamingResponse {
-        let res = match topic.unsubscribe(self.topic, self.id) {
+        // `Unsubscribe`流：单个CommandResponse构成
+        let res: CommandResponse = match topic.unsubscribe(self.topic, self.id) {
             Ok(_) => CommandResponse::ok(),
             Err(e) => e.into(),
         };
@@ -30,6 +32,7 @@ impl TopicService for Unsubscribe {
 
 impl TopicService for Publish {
     fn execute(self, topic: impl Topic) -> StreamingResponse {
+        // `Publish`流：单个CommandResponse构成
         topic.publish(self.topic, Arc::new(self.data.into()));
         Box::pin(stream::once(async { Arc::new(CommandResponse::ok()) }))
     }
