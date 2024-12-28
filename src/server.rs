@@ -14,6 +14,7 @@ use tracing_subscriber::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // 从环境变量读取配置位置，没有则用内置默认配置
     let config = match env::var("KV_SERVER_CONFIG") {
         Ok(path) => fs::read_to_string(&path).await?,
         Err(_) => include_str!("../fixtures/quic_server.conf").to_string(),
