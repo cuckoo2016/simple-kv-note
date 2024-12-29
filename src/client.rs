@@ -52,6 +52,7 @@ where
     info!("Got response {:?}", data);
 
     // 生成一个 Subscribe 命令
+    // `execute_streaming`执行完后，stream被消耗，无法再发送下一个Command
     let cmd = CommandRequest::new_subscribe(channel);
     let mut stream = stream.execute_streaming(&cmd).await?;
     let id = stream.id;

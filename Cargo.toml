@@ -13,6 +13,7 @@ path = "src/server.rs"
 name = "kvc"
 path = "src/client.rs"
 
+
 # 证书工具
 [[bin]]
 name = "gen_cert"
