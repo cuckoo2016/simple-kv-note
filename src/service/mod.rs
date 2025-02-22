@@ -138,7 +138,7 @@ impl<Store: Storage> From<ServiceInner<Store>> for Service<Store> {
         // 创建Service实例，使用Arc共享ServiceInner和Broadcaster的所有权
         Self {
             inner: Arc::new(inner),
-            broadcaster: Default::default(),
+            broadcaster: Arc::new(Default::default()),
         }
     }
 }

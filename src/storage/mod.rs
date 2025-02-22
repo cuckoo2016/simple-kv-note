@@ -41,7 +41,6 @@ where
     T::Item: Into<Kvpair>,
 {
     type Item = Kvpair;
-
     fn next(&mut self) -> Option<Self::Item> {
         self.data.next().map(|v| v.into())
     }

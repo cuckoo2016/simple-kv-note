@@ -10,6 +10,9 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use crate::{read_frame, FrameCoder, KvError};
 
 /// 处理 KV server prost frame 的 stream
+/// 目的：
+///     1.统一不同多路复用框架下的流类型
+///     2.较高层次规范标准的输入和输出类型
 pub struct ProstStream<S, In, Out> {
     // innner stream
     stream: S,

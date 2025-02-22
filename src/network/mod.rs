@@ -1,15 +1,21 @@
-mod frame;
-mod multiplex;
-mod stream;
-mod stream_result;
-mod tls;
+mod frame; // 定义了frame模块
+mod multiplex; // 定义了multiplex模块
+mod stream; // 定义了stream模块
+mod stream_result; // 定义了stream_result模块
+mod tls; // 定义了tls模块
 
+// 导出frame模块中的read_frame和FrameCoder
 pub use frame::{read_frame, FrameCoder};
+// 导出multiplex模块中的AppStream, QuicCtrl, YamuxCtrl
 pub use multiplex::{AppStream, QuicCtrl, YamuxCtrl};
+// 导出stream模块中的ProstStream
 pub use stream::ProstStream;
+// 导出stream_result模块中的StreamResult
 pub use stream_result::StreamResult;
+// 导出tls模块中的TlsClientConnector, TlsServerAcceptor
 pub use tls::{TlsClientConnector, TlsServerAcceptor};
 
+// 导入必要的依赖项
 use crate::{CommandRequest, CommandResponse, KvError, Service, Storage};
 use futures::{SinkExt, StreamExt};
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -17,50 +23,50 @@ use tracing::{info, warn};
 
 /// 处理服务器端的某个 accept 下来的 socket 的读写
 pub struct ProstServerStream<S, Store> {
-    inner: ProstStream<S, CommandRequest, CommandResponse>,
-    service: Service<Store>,
+    inner: ProstStream<S, CommandRequest, CommandResponse>, // 内部流处理器
+    service: Service<Store>, // 服务实例
 }
 
 /// 处理客户端 socket 的读写
 pub struct ProstClientStream<S> {
-    inner: ProstStream<S, CommandResponse, CommandRequest>,
+    inner: ProstStream<S, CommandResponse, CommandRequest>, // 内部流处理器
 }
 
 impl<S, Store> ProstServerStream<S, Store>
 where
-    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
-    Store: Storage,
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static, // 定义S的trait约束
+    Store: Storage, // 定义Store的trait约束
 {
     pub fn new(stream: S, service: Service<Store>) -> Self {
         Self {
-            inner: ProstStream::new(stream),
-            service,
+            inner: ProstStream::new(stream), // 创建流处理器
+            service, // 保存服务实例
         }
     }
 
     pub async fn process(mut self) -> Result<(), KvError> {
-        let stream = &mut self.inner;
-        while let Some(Ok(cmd)) = stream.next().await {
-            info!("Got a new command: {:?}", cmd);
-            let mut res = self.service.execute(cmd);
-            while let Some(data) = res.next().await {
-                if let Err(e) = stream.send(&data).await {
-                    warn!("Failed to send response: {e:?}");
+        let stream = &mut self.inner; // 获取流处理器的可变引用
+        while let Some(Ok(cmd)) = stream.next().await { // 从流中读取命令
+            info!("Got a new command: {:?}", cmd); // 打印接收到的命令
+            let mut res = self.service.execute(cmd); // 执行服务
+            while let Some(data) = res.next().await { // 从服务执行结果中读取数据
+                if let Err(e) = stream.send(&data).await { // 发送数据
+                    warn!("Failed to send response: {e:?}"); // 发送失败时打印警告
                 }
             }
         }
-        // info!("Client {:?} disconnected", self.addr);
+        // info!("Client {:?} disconnected", self.addr); // 客户端断开连接时打印信息
         Ok(())
     }
 }
 
 impl<S> ProstClientStream<S>
 where
-    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static, // 定义S的trait约束
 {
     pub fn new(stream: S) -> Self {
         Self {
-            inner: ProstStream::new(stream),
+            inner: ProstStream::new(stream), // 创建流处理器
         }
     }
 
@@ -68,22 +74,21 @@ where
         &mut self,
         cmd: &CommandRequest,
     ) -> Result<CommandResponse, KvError> {
-        let stream = &mut self.inner;
-        stream.send(cmd).await?;
+        let stream = &mut self.inner; // 获取流处理器的可变引用
+        stream.send(cmd).await?; // 发送命令
 
-        match stream.next().await {
-            Some(v) => v,
-            None => Err(KvError::Internal("Didn't get any response".into())),
+        match stream.next().await { // 从流中读取响应
+            Some(v) => v, // 成功返回响应
+            None => Err(KvError::Internal("Didn't get any response".into())), // 失败返回错误
         }
     }
 
     pub async fn execute_streaming(self, cmd: &CommandRequest) -> Result<StreamResult, KvError> {
-        let mut stream = self.inner;
+        let mut stream = self.inner; // 获取流处理器的可变引用
+        stream.send(cmd).await?; // 发送命令
+        stream.close().await?; // 关闭流
 
-        stream.send(cmd).await?;
-        stream.close().await?;
-
-        StreamResult::new(stream).await
+        StreamResult::new(stream).await // 创建并返回流结果
     }
 }
 
@@ -96,7 +101,7 @@ pub mod utils {
 
     #[derive(Default)]
     pub struct DummyStream {
-        pub buf: BytesMut,
+        pub buf: BytesMut, // 内部缓冲区
     }
 
     impl AsyncRead for DummyStream {
@@ -105,11 +110,11 @@ pub mod utils {
             _cx: &mut std::task::Context<'_>,
             buf: &mut tokio::io::ReadBuf<'_>,
         ) -> Poll<std::io::Result<()>> {
-            let this = self.get_mut();
-            let len = min(buf.capacity(), this.buf.len());
-            let data = this.buf.split_to(len);
-            buf.put_slice(&data);
-            Poll::Ready(Ok(()))
+            let this = self.get_mut(); // 获取DummyStream的可变引用
+            let len = min(buf.capacity(), this.buf.len()); // 计算读取的最大长度
+            let data = this.buf.split_to(len); // 从缓冲区中分割出数据
+            buf.put_slice(&data); // 将数据写入读取缓冲区
+            Poll::Ready(Ok(())) // 返回读取成功
         }
     }
 
@@ -119,22 +124,22 @@ pub mod utils {
             _cx: &mut std::task::Context<'_>,
             buf: &[u8],
         ) -> Poll<Result<usize, std::io::Error>> {
-            self.get_mut().buf.put_slice(buf);
-            Poll::Ready(Ok(buf.len()))
+            self.get_mut().buf.put_slice(buf); // 将数据写入缓冲区
+            Poll::Ready(Ok(buf.len())) // 返回写入的字节数
         }
 
         fn poll_flush(
             self: std::pin::Pin<&mut Self>,
             _cx: &mut std::task::Context<'_>,
         ) -> Poll<Result<(), std::io::Error>> {
-            Poll::Ready(Ok(()))
+            Poll::Ready(Ok(())) // 返回刷新成功
         }
 
         fn poll_shutdown(
             self: std::pin::Pin<&mut Self>,
             _cx: &mut std::task::Context<'_>,
         ) -> Poll<Result<(), std::io::Error>> {
-            Poll::Ready(Ok(()))
+            Poll::Ready(Ok(())) // 返回关闭成功
         }
     }
 }
@@ -164,7 +169,7 @@ mod tests {
         // 第一次 HSET 服务器应该返回 None
         assert_res_ok(&res, &[Value::default()], &[]);
 
-        // 再发一个 HSET
+        // 再发一个 HGET
         let cmd = CommandRequest::new_hget("t1", "k1");
         let res = client.execute_unary(&cmd).await?;
 
